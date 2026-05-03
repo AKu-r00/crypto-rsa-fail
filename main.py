@@ -19,7 +19,7 @@ print("\n" + "="*60)
 print("[PARTIE 1] GENERATION DE CLES RSA (vulnerable)")
 print("="*60)
 
-p, q, e = 61, 53, 17
+p, q, e = 99023, 99053, 17
 n = p * q
 phi = (p - 1) * (q - 1)
 d = inverse_modulaire(e, phi)
@@ -63,24 +63,34 @@ print("\n" + "="*60)
 print("[PARTIE 3] ATTAQUE RACINE CUBIQUE (e petit)")
 print("="*50)
 
-pub1, priv1 = generer_cles(99023, 99053, 3)
-e1, n1 = pub1
-C1 = chiffrer(M, e1, n1)
-M1 = attaque_racine_cubique(C1, n1)
-print(f"n={n1}, C={C1}")
-print(f"Attaque 1 (petit exposant) -> M retrouve = {M1}")
+M_cube = M ** 3
+p1, q1 = 1500007, 1500019
+n1 = p1 * q1
+
+if M_cube >= n1:
+    print(f"ATTENTION: M^3 = {M_cube} >= n = {n1}")
+    print("Condition non remplie, attaque impossible pour ce M")
+    print("Cette attaque fonctionne uniquement si M est petit")
+    print(f"Exemple qui marche : M=7 -> 7^3=343 < n")
+    M1 = None
+else:
+    e1 = 3
+    C1 = pow(M, e1, n1)
+    M1 = attaque_racine_cubique(C1, n1)
+    print(f"n={n1}, C={C1}")
+    print(f"Attaque 1 (petit exposant) -> M retrouve = {M1}")
 
 print("\n" + "="*60)
 print("[PARTIE 4] ATTAQUE PAR FACTORISATION")
 print("="*50)
 
-pub2, priv2 = generer_cles(61, 53, 17)
-e2, n2 = pub2
-C2 = chiffrer(M, e2, n2)
-p, q = factorisation_naive(n2)
-phi = (p-1)*(q-1)
-d_recup = inverse_modulaire(e2, phi)
-M2 = dechiffrer(C2, d_recup, n2)
+p2, q2, e2 = 99023, 99053, 17
+n2 = p2 * q2
+C2 = pow(M, e2, n2)
+p_factor, q_factor = factorisation_naive(n2)
+phi2 = (p_factor - 1) * (q_factor - 1)
+d_recup = inverse_modulaire(e2, phi2)
+M2 = pow(C2, d_recup, n2)
 print(f"n={n2}, C={C2}")
 print(f"Attaque 2 (factorisation)  -> M retrouve = {M2}")
 
@@ -88,22 +98,19 @@ print("\n" + "="*60)
 print("[PARTIE 5] ATTAQUE BROADCAST (CRT)")
 print("="*50)
 
-pairs = [
-    generer_cles(99017, 99023, 3),
-    generer_cles(99017, 99053, 3),
-    generer_cles(99023, 99053, 3),
-]
-n_vals = []
+p_bc1, q_bc1 = 1299709, 1299721
+p_bc2, q_bc2 = 1299743, 1299763
+p_bc3, q_bc3 = 1299791, 1299811
+
+n_bc = [p_bc1*q_bc1, p_bc2*q_bc2, p_bc3*q_bc3]
 C_vals = []
-for pub, _ in pairs:
-    e, n = pub
-    n_vals.append(n)
+for n in n_bc:
     C_val = pow(M, 3, n)
     C_vals.append(C_val)
     print(f"n={n}, C={C_val}")
 
 M3 = None
-M_reconstruct = crt(C_vals, n_vals)
+M_reconstruct = crt(C_vals, n_bc)
 if M_reconstruct:
     M3 = round(M_reconstruct ** (1/3))
     print(f"M^3 reconstruct = {M_reconstruct}")
